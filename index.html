@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gedayyyyy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#E9ECEF; --panel:#F8F9FA; --ink:#17212B; --muted:#5F6B76; --line:#CBD2D9;
+  --accent:#0F6B66; --accent-ink:#fff; --danger:#B3261E; --ok:#1F7A4D;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1400px;margin:0 auto;padding:16px}
+
+/* top bar */
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.top h1{font-size:1.35rem;margin:0}
+.tabs{display:flex;gap:6px;background:var(--panel);padding:4px;border-radius:12px;border:1px solid var(--line)}
+.tab{border:0;background:transparent;padding:8px 16px;border-radius:9px;font-weight:600;color:var(--muted)}
+.tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.who{display:flex;align-items:center;gap:8px;font-size:.95rem;color:var(--muted)}
+.who b{color:var(--ink)}
+.link{border:0;background:none;color:var(--accent);text-decoration:underline;padding:0}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.stat .n{font-size:2.4rem;font-weight:700;line-height:1.1}
+.stat .l{color:var(--muted);font-size:.95rem}
+.stat.done .n{color:var(--ok)}
+.stat.left .n{color:var(--danger)}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;margin-bottom:16px}
+.bar>i{display:block;height:100%;background:var(--ok);width:0;transition:width .4s}
+
+/* leaderboard */
+.lead{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+.lead h2{font-size:1.05rem;margin:0 0 8px}
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pod{border-radius:12px;padding:12px;text-align:center;background:#fff;border:1px solid var(--line)}
+.pod.r1{background:#FFF1B8;border-color:#E2C044}
+.pod.r2{background:#E6EAEE;border-color:#AEB8C2}
+.pod.r3{background:#F6DFC8;border-color:#D1A57A}
+.pod .medal{font-size:2rem;line-height:1.1}
+.pod .nm{font-weight:700;font-size:1.1rem}
+.pod .sm{font-size:.85rem;color:var(--muted)}
+.lead .none{color:var(--muted);font-size:.95rem}
+@media (max-width:640px){.podium{grid-template-columns:1fr}}
+
+/* add form */
+.add{display:flex;flex-wrap:wrap;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:14px}
+.add textarea{flex:1 1 260px;min-height:46px;max-height:140px;resize:vertical;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
+.add select{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
+.btn{border:0;background:var(--accent);color:var(--accent-ink);padding:10px 18px;border-radius:10px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+
+/* filters */
+.tools-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.chips{display:flex;gap:6px}
+.chip{border:1px solid var(--line);background:var(--panel);padding:5px 14px;border-radius:99px;font-size:.9rem}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* board */
+.board{display:flex;gap:12px;overflow-x:auto;padding-bottom:14px;scroll-snap-type:x proximity;align-items:flex-start}
+.col{flex:0 0 250px;scroll-snap-align:start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;min-height:160px}
+.col.un{border-style:dashed;background:transparent}
+.col.over{outline:3px dashed var(--accent);background:#fff}
+.col h2{font-size:1.05rem;margin:0 0 2px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.col .cnt{font-size:.82rem;color:var(--muted);margin-bottom:8px}
+.col .cnt b{color:var(--ink)}
+.empty{color:var(--muted);font-size:.9rem;padding:14px 4px;text-align:center}
+
+/* notes */
+.note{position:relative;background:var(--c,#fff);border-radius:6px 6px 6px 22px;padding:10px 10px 8px;margin-bottom:9px;
+  box-shadow:0 1px 0 rgba(0,0,0,.12),0 3px 8px rgba(0,0,0,.08);cursor:grab;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+.note.dragging{opacity:.4}
+.note.done .title{text-decoration:line-through;opacity:.6}
+.note.done{filter:saturate(.5)}
+.chk{width:22px;height:22px;accent-color:var(--ok);flex:none;margin-top:2px;cursor:pointer}
+.title{flex:1 1 90px;font-weight:500;word-break:break-word;min-width:0}
+.title[contenteditable="true"]{background:#fff;outline:2px solid var(--accent);padding:0 4px;border-radius:4px}
+.nt{flex:0 0 100%;display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.mv{max-width:120px;font-size:.8rem;border:1px solid rgba(0,0,0,.2);border-radius:6px;padding:2px 4px;background:rgba(255,255,255,.7)}
+.ib{border:0;background:rgba(255,255,255,.6);border-radius:6px;width:30px;height:28px;font-size:.95rem}
+.ib:hover{background:#fff}
+.ib.del:hover{color:var(--danger)}
+.xm{border:0;background:none;color:var(--muted);font-size:1rem}
+.xm:hover{color:var(--danger)}
+
+/* mine */
+.mine{max-width:640px;margin:0 auto}
+.mine h2{margin:8px 0 4px}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px}
+.pick button{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:16px 8px;font-weight:600;font-size:1.05rem}
+.pick button:hover{border-color:var(--accent);background:#fff}
+
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:10px;display:none;z-index:9;max-width:90vw}
+.banner{background:#FFF4CE;border:1px solid #E2C044;border-radius:12px;padding:12px;margin-bottom:12px;display:none}
+
+@media (max-width:640px){
+  .stat .n{font-size:1.8rem}
+  .col{flex-basis:82vw}
+}
+@media (prefers-reduced-motion:reduce){.bar>i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner" id="banner">لازم تحط رابط ومفتاح Supabase في أول ملف <b>index.html</b> (SUPABASE_URL و SUPABASE_KEY).</div>
+
+  <div class="top">
+    <h1>متابعة الأسماء</h1>
+    <div class="tabs" role="group" aria-label="العرض">
+      <button class="tab" data-view="board" aria-pressed="true">اللوحة</button>
+      <button class="tab" data-view="mine" aria-pressed="false">مهامي</button>
+    </div>
+    <div class="who" id="who"></div>
+  </div>
+
+  <div id="app"></div>
+</div>
+<input type="file" id="xlsxFile" accept=".xlsx,.xls,.csv" hidden>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ====== غيّر القيمتين دول من Supabase > Project Settings > API ====== */
+const SUPABASE_URL = "https://ctqyjhdshzyqtbbmgeoo.supabase.co";
+const SUPABASE_KEY = "sb_publishable_gxoo1cIpv2AFtwtwgApp8A_rrt8RE5S";
+/* ==================================================================== */
+
+const configured = !SUPABASE_URL.startsWith("PUT_") && !SUPABASE_KEY.startsWith("PUT_");
+if (!configured) document.getElementById("banner").style.display = "block";
+const sb = configured ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+const COLORS = ["#FFE9A8","#CFEBDD","#FAD0D0","#CFE0F7","#E4D5F5","#FFD9B8","#D5F0F0","#EAF2C0"];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = s => document.querySelector(s);
+
+let members = [], tasks = [];
+let me = Number(localStorage.getItem("me")) || null;
+let view = "board", filter = "all";
+
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = "none", 3500);
+}
+function colorOf(mid){
+  const i = members.findIndex(m => m.id === mid);
+  return i < 0 ? "#FFFFFF" : COLORS[i % COLORS.length];
+}
+function nameOf(mid){ const m = members.find(m => m.id === mid); return m ? m.name : "غير موزعة"; }
+
+/* ---------- data ---------- */
+async function load(){
+  if (!sb) { render(); return; }
+  const [m, t] = await Promise.all([
+    sb.from("members").select("*").order("id"),
+    sb.from("tasks").select("*").order("id")
+  ]);
+  if (m.error || t.error) { toast("مشكلة في الاتصال: " + (m.error || t.error).message); return; }
+  members = m.data; tasks = t.data;
+  if (me && !members.some(x => x.id === me)) { me = null; localStorage.removeItem("me"); }
+  render();
+}
+async function run(promise){
+  const { error } = await promise;
+  if (error) toast("حصل خطأ: " + error.message);
+  await load();
+}
+let reloadTimer;
+if (sb) {
+  sb.channel("live").on("postgres_changes", { event: "*", schema: "public" }, () => {
+    clearTimeout(reloadTimer); reloadTimer = setTimeout(load, 250);
+  }).subscribe();
+}
+
+/* ---------- render ---------- */
+function stats(list){
+  const total = list.length, done = list.filter(t => t.done).length;
+  return { total, done, left: total - done };
+}
+function noteHTML(t){
+  const opts = `<option value="" selected disabled>نقل إلى…</option><option value="0">غير موزعة</option>` +
+    members.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
+  return `<div class="note ${t.done ? "done" : ""}" draggable="true" data-id="${t.id}" style="--c:${colorOf(t.member_id)}">
+    <input type="checkbox" class="chk" ${t.done ? "checked" : ""} aria-label="تم">
+    <span class="title">${esc(t.title)}</span>
+    <div class="nt">
+      <select class="mv" aria-label="نقل لعضو">${opts}</select>
+      <button class="ib edit" title="تعديل" aria-label="تعديل">✎</button>
+      <button class="ib del" title="حذف" aria-label="حذف">✕</button>
+    </div>
+  </div>`;
+}
+function targetSelect(selected){
+  return `<select id="target" aria-label="توزيع على">
+    <option value="0">غير موزعة</option>
+    ${members.map(m => `<option value="${m.id}" ${m.id === selected ? "selected" : ""}>${esc(m.name)}</option>`).join("")}
+  </select>`;
+}
+function addForm(selected){
+  return `<div class="add">
+    <textarea id="newText" rows="1" placeholder="اكتب اسم أو أكتر (كل اسم في سطر)"></textarea>
+    ${targetSelect(selected)}
+    <button class="btn" id="addBtn">إضافة</button>
+  </div>`;
+}
+function colHTML(m){
+  const all = tasks.filter(t => m ? t.member_id === m.id : t.member_id == null);
+  const s = stats(all);
+  const shown = all.filter(t => filter === "all" || (filter === "done" ? t.done : !t.done));
+  return `<section class="col ${m ? "" : "un"}" data-member="${m ? m.id : 0}">
+    <h2><span>${m ? esc(m.name) : "غير موزعة"}</span>
+      ${m ? `<button class="xm" data-delmember="${m.id}" title="حذف العضو" aria-label="حذف العضو">✕</button>` : ""}</h2>
+    <div class="cnt">عليه <b>${s.total}</b> · خلص <b>${s.done}</b> · لسة <b>${s.left}</b></div>
+    ${shown.length ? shown.map(noteHTML).join("") : `<div class="empty">${all.length ? "مفيش حاجة بالفلتر ده" : "فاضي"}</div>`}
+  </section>`;
+}
+function renderBoard(){
+  const s = stats(tasks);
+  const pct = s.total ? Math.round(s.done / s.total * 100) : 0;
+  return `
+  <div class="stats">
+    <div class="stat"><div class="n">${s.total}</div><div class="l">إجمالي الأسماء</div></div>
+    <div class="stat done"><div class="n">${s.done}</div><div class="l">خلصوا</div></div>
+    <div class="stat left"><div class="n">${s.left}</div><div class="l">لسة</div></div>
+  </div>
+  <div class="bar" aria-label="نسبة الإنجاز ${pct}%"><i style="width:${pct}%"></i></div>
+  ${leaderHTML()}
+  ${addForm(0)}
+  <div class="tools-row">
+    <div class="chips">
+      <button class="chip" data-filter="all" aria-pressed="${filter === "all"}">الكل</button>
+      <button class="chip" data-filter="open" aria-pressed="${filter === "open"}">لسة</button>
+      <button class="chip" data-filter="done" aria-pressed="${filter === "done"}">خلصوا</button>
+    </div>
+    <div class="chips">
+      <button class="btn ghost" id="importBtn">استيراد من Excel</button>
+      <button class="btn ghost" id="exportBtn">تصدير Excel</button>
+      <button class="btn ghost" id="addMember">+ عضو جديد</button>
+    </div>
+  </div>
+  <div class="board">${colHTML(null)}${members.map(colHTML).join("")}</div>`;
+}
+function renderMine(){
+  if (!me) {
+    return `<div class="mine"><h2>إنت مين؟</h2><div class="l" style="color:var(--muted)">اختار اسمك عشان تشوف الأسماء اللي عليك.</div>
+      <div class="pick">${members.map(m => `<button data-pick="${m.id}">${esc(m.name)}</button>`).join("")}</div></div>`;
+  }
+  const mine = tasks.filter(t => t.member_id === me);
+  const s = stats(mine);
+  const open = mine.filter(t => !t.done), done = mine.filter(t => t.done);
+  return `<div class="mine">
+    <h2>الأسماء اللي على ${esc(nameOf(me))}</h2>
+    <div class="stats" style="margin-top:10px">
+      <div class="stat"><div class="n">${s.total}</div><div class="l">عليك</div></div>
+      <div class="stat done"><div class="n">${s.done}</div><div class="l">خلصت</div></div>
+      <div class="stat left"><div class="n">${s.left}</div><div class="l">لسة</div></div>
+    </div>
+    ${leaderHTML()}
+    ${addForm(me)}
+    ${open.length ? open.map(noteHTML).join("") : `<div class="empty">مفيش حاجة لسة عليك 🎉</div>`}
+    ${done.length ? `<h3 style="margin:16px 0 8px;color:var(--muted);font-size:1rem">اللي خلصته</h3>${done.map(noteHTML).join("")}` : ""}
+  </div>`;
+}
+function render(){
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === view));
+  $("#who").innerHTML = me ? `داخل باسم <b>${esc(nameOf(me))}</b> <button class="link" id="switchMe">تغيير</button>` : "";
+  // keep what the person is typing across re-renders
+  const prev = $("#newText") ? $("#newText").value : "";
+  const prevT = $("#target") ? $("#target").value : null;
+  $("#app").innerHTML = view === "board" ? renderBoard() : renderMine();
+  if ($("#newText")) { $("#newText").value = prev; if (prevT !== null) $("#target").value = prevT; }
+}
+
+/* ---------- ranking ---------- */
+function ranking(){
+  return members.map(m => {
+    const s = stats(tasks.filter(t => t.member_id === m.id));
+    return { m, total: s.total, done: s.done, left: s.left, pct: s.total ? Math.round(s.done / s.total * 100) : 0 };
+  }).sort((a, b) => b.done - a.done || b.pct - a.pct || a.m.name.localeCompare(b.m.name, "ar"));
+}
+function leaderHTML(){
+  const top = ranking().filter(r => r.done > 0).slice(0, 3);
+  const medals = ["🥇", "🥈", "🥉"], labels = ["الأول", "التاني", "التالت"];
+  return `<div class="lead"><h2>أكتر ناس شغالة بكفاءة</h2>` + (top.length
+    ? `<div class="podium">${top.map((r, i) => `<div class="pod r${i + 1}">
+        <div class="medal">${medals[i]}</div><div class="nm">${labels[i]}: ${esc(r.m.name)}</div>
+        <div class="sm">خلص ${r.done} من ${r.total} · ${r.pct}%</div></div>`).join("")}</div>`
+    : `<div class="none">لسه محدش خلص حاجة. أول ما حد يعلّم اسم صح هيظهر الترتيب.</div>`) + `</div>`;
+}
+
+/* ---------- Excel ---------- */
+function exportXlsx(){
+  if (typeof XLSX === "undefined") return toast("مكتبة Excel مش اتحملت، اتأكد من النت");
+  const taskRows = tasks.map(t => ({ "الاسم": t.title, "المسؤول": t.member_id ? nameOf(t.member_id) : "", "الحالة": t.done ? "خلص" : "لسة" }));
+  const rankRows = ranking().map((r, i) => ({ "الترتيب": i + 1, "العضو": r.m.name, "الإجمالي": r.total, "خلص": r.done, "لسة": r.left, "نسبة الإنجاز": r.pct + "%" }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(taskRows.length ? taskRows : [{ "الاسم": "", "المسؤول": "", "الحالة": "" }]), "الأسماء");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rankRows), "الترتيب");
+  wb.Workbook = { Views: [{ RTL: true }] };
+  XLSX.writeFile(wb, "متابعة-الأسماء.xlsx");
+}
+async function importXlsx(file){
+  if (!sb) return toast("ضيف بيانات Supabase الأول");
+  if (typeof XLSX === "undefined") return toast("مكتبة Excel مش اتحملت، اتأكد من النت");
+  const wb = XLSX.read(await file.arrayBuffer());
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" });
+  const isHeader = c => ["الاسم", "اسم", "الأسماء", "الاسماء", "name", "names"].includes(String(c).trim().toLowerCase());
+  if (rows.length && isHeader(rows[0][0])) rows.shift();
+  const doneWords = ["خلص", "خلصت", "تم", "done", "yes", "نعم", "1", "true", "✓", "✔"];
+  const out = [];
+  for (const r of rows) {
+    const title = String(r[0] ?? "").trim();
+    if (!title) continue;
+    const mName = String(r[1] ?? "").trim();
+    const m = mName && members.find(x => x.name === mName);
+    out.push({ title, member_id: m ? m.id : null, done: doneWords.includes(String(r[2] ?? "").trim().toLowerCase()) });
+  }
+  if (!out.length) return toast("مالقيتش أسماء في الملف");
+  await run(sb.from("tasks").insert(out));
+  toast(`اتضاف ${out.length} اسم`);
+}
+
+/* ---------- actions ---------- */
+async function addTasks(){
+  if (!sb) return toast("ضيف بيانات Supabase الأول");
+  const box = $("#newText");
+  const lines = box.value.split("\n").map(s => s.trim()).filter(Boolean);
+  if (!lines.length) return;
+  const mid = Number($("#target").value) || null;
+  box.value = "";
+  await run(sb.from("tasks").insert(lines.map(title => ({ title, member_id: mid }))));
+}
+async function moveTask(id, mid){
+  const t = tasks.find(x => x.id === id); if (!t) return;
+  t.member_id = mid || null; render();
+  await run(sb.from("tasks").update({ member_id: mid || null }).eq("id", id));
+}
+
+document.addEventListener("click", async e => {
+  const el = e.target;
+  if (el.closest(".tab")) { view = el.closest(".tab").dataset.view; render(); return; }
+  if (el.id === "addBtn") return addTasks();
+  if (el.id === "exportBtn") return exportXlsx();
+  if (el.id === "importBtn") { $("#xlsxFile").click(); return; }
+  if (el.id === "switchMe") { me = null; localStorage.removeItem("me"); view = "mine"; render(); return; }
+  if (el.dataset.pick) { me = Number(el.dataset.pick); localStorage.setItem("me", me); render(); return; }
+  if (el.dataset.filter) { filter = el.dataset.filter; render(); return; }
+  if (el.id === "addMember") {
+    const name = (prompt("اسم العضو الجديد:") || "").trim();
+    if (name) await run(sb.from("members").insert({ name }));
+    return;
+  }
+  if (el.dataset.delmember) {
+    const m = members.find(x => x.id === Number(el.dataset.delmember));
+    if (m && confirm(`حذف ${m.name}؟ الأسماء اللي عليه هترجع غير موزعة.`)) await run(sb.from("members").delete().eq("id", m.id));
+    return;
+  }
+  const note = el.closest(".note"); if (!note) return;
+  const id = Number(note.dataset.id);
+  if (el.closest(".del")) {
+    if (confirm("حذف الاسم ده؟")) await run(sb.from("tasks").delete().eq("id", id));
+  } else if (el.closest(".edit")) {
+    const title = note.querySelector(".title");
+    title.contentEditable = "true"; note.draggable = false; title.focus();
+    const r = document.createRange(); r.selectNodeContents(title);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  }
+});
+
+document.addEventListener("change", async e => {
+  if (e.target.id === "xlsxFile") {
+    const f = e.target.files[0]; e.target.value = "";
+    if (f) await importXlsx(f);
+    return;
+  }
+  const el = e.target, note = el.closest(".note"); if (!note) return;
+  const id = Number(note.dataset.id);
+  if (el.classList.contains("chk")) {
+    const t = tasks.find(x => x.id === id); t.done = el.checked; render();
+    await run(sb.from("tasks").update({ done: el.checked }).eq("id", id));
+  } else if (el.classList.contains("mv")) {
+    moveTask(id, Number(el.value));
+  }
+});
+
+document.addEventListener("focusout", async e => {
+  const el = e.target;
+  if (!el.classList || !el.classList.contains("title") || el.contentEditable !== "true") return;
+  const note = el.closest(".note"), id = Number(note.dataset.id);
+  const title = el.textContent.trim(); el.contentEditable = "false";
+  const t = tasks.find(x => x.id === id);
+  if (title && t && title !== t.title) await run(sb.from("tasks").update({ title }).eq("id", id));
+  else render();
+});
+document.addEventListener("keydown", e => {
+  if (e.target.classList && e.target.classList.contains("title") && e.key === "Enter") { e.preventDefault(); e.target.blur(); }
+  if (e.target.id === "newText" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addTasks(); }
+});
+
+/* drag & drop between members */
+document.addEventListener("dragstart", e => {
+  const n = e.target.closest && e.target.closest(".note"); if (!n) return;
+  e.dataTransfer.setData("text/plain", n.dataset.id); e.dataTransfer.effectAllowed = "move";
+  n.classList.add("dragging");
+});
+document.addEventListener("dragend", e => {
+  document.querySelectorAll(".dragging,.over").forEach(x => x.classList.remove("dragging", "over"));
+});
+document.addEventListener("dragover", e => {
+  const c = e.target.closest && e.target.closest(".col"); if (!c) return;
+  e.preventDefault();
+  document.querySelectorAll(".col.over").forEach(x => x !== c && x.classList.remove("over"));
+  c.classList.add("over");
+});
+document.addEventListener("drop", e => {
+  const c = e.target.closest && e.target.closest(".col"); if (!c) return;
+  e.preventDefault(); c.classList.remove("over");
+  const id = Number(e.dataTransfer.getData("text/plain"));
+  if (id) moveTask(id, Number(c.dataset.member));
+});
+
+load();
+</script>
+</body>
+</html>
